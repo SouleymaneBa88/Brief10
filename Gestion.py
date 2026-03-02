@@ -95,11 +95,12 @@ class GestionDuService:
         if 1<= choix <= 3:
             for i in range(choix):
                 id_creneaux = int(input(f"\nChoisir ID Créneau  {i+1} : "))
-                donnes_creneaux.append(
-                    (motif_resrver,Date,client,id_creneaux)
-                    )
-                # print(type(donnes_creneaux))
-                # print(donnes_creneaux)
+                if id_creneaux not in donnes_creneaux:
+                    donnes_creneaux.append(
+                        (motif_resrver,Date,client,id_creneaux)
+                        )
+                else:
+                    print("Vous avez choisi deux fois le meme creneaux")
         else:
             print("Incorrect")
 
@@ -108,18 +109,20 @@ class GestionDuService:
                         WHERE id_creneaux = %s
                         AND date_reservation = %s
                         AND statut = 'reserve'""",(id_creneaux,Date))
-        
         exist = cursor.fetchone()
 
         if exist:
             print(f"Reservation rejete!\n Cause:  Creneaux a ete deja pris")
             return
 
-        cursor.executemany(""" 
-                        insert into reservation(type_reservation,date_reservation,id_client,id_creneaux,statut) 
-                    values(%s,%s,%s,%s,'reserve')""",(donnes_creneaux))
-        self.connection.commit()
-        print("Reservation reussi !")
+        try:
+            cursor.executemany(""" 
+                            insert into reservation(type_reservation,date_reservation,id_client,id_creneaux,statut) 
+                        values(%s,%s,%s,%s,'reserve')""",(donnes_creneaux))
+            self.connection.commit()
+            print("Reservation reussi !")
+        except Exception as e:
+            print(f"Oups il y'a une erreur {e} \n Verifier id choisi si tu ne l'as pas choisi deux fois")
     
         cursor.close()
 
@@ -127,7 +130,6 @@ class GestionDuService:
     def annuler_reservation(self):
         """ Fonction pour annuler une reservation  """
         cursor = self.connection.cursor(dictionary=True)
-
         question = input("VOULEZ-VOUS ANNULER UNE RESERVATION (oui/non) : ").lower()
 
         if question == 'oui':
@@ -171,21 +173,24 @@ class GestionDuService:
             if not existe:
                 print("ID invalide ou réservation déjà annulée.")
                 return
+            
+            try:
+                cursor.execute("""
+                    UPDATE reservation
+                    SET statut = 'annule'
+                    WHERE id_reservation = %s
+                """, (choix,))
 
-            cursor.execute("""
-                UPDATE reservation
-                SET statut = 'annule'
-                WHERE id_reservation = %s
-            """, (choix,))
-
-            self.connection.commit()
-
-            print(" Réservation annulée avec succès.")
+                self.connection.commit()
+                print(" Réservation annulée avec succès.")
+            except Exception as e:
+                    print(f"Attention vous avez fait une petite erreur{e}")
 
         else:
             print("Annulation annulée.")
 
         cursor.close()
+
 
     def supprime_reservation_annule(self):
         """ pour supprimer une reservation annulee du table """
@@ -211,11 +216,13 @@ class GestionDuService:
                 f"{row['statut']:^10}")
     
         choix = int(input("ID du reservation a supprimer : "))
-
-        cursor.execute(""" delete from reservation where id_reservation =%s """,(choix,))
-        self.connection.commit()
-        print("Suppression avec succes !")
-        cursor.close()
+        try:
+            cursor.execute(""" delete from reservation where id_reservation =%s """,(choix,))
+            self.connection.commit()
+            print("Suppression avec succes !")
+        except Exception as e:
+            print(f"OUps {e}")
+            cursor.close()
 
 
     def exporter_csv(self):

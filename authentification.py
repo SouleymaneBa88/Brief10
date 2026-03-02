@@ -41,8 +41,7 @@ class Authentification():
                                 insert into Users(nom_user, prenom_user, email_user, password, role_user)
                                 VALUES (%s, %s, %s, %s, %s)
                                    """, (nom, prenom, email, password_hacher, role))
-                    # print(cursor)
-                    # print(cursor.execute())
+                    
                     self.connection.commit()
                     print("Inscription reussi !")
                 except Exception as e:
@@ -72,9 +71,3 @@ class Authentification():
         print("-"*40)
         return user['id_user'], user['role_user'] 
         
-
-# c = Authentification()
-# c.inscrire()
-
-
-

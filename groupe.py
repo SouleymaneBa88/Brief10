@@ -20,13 +20,15 @@ class Groupes:
         if existe:
             print("Numero de telephone deja utilise !")
             return
-
-        cusror.execute(""" 
-                        insert into Clients (nomgroupe , representant, telephone_client)
-                    values(%s, %s, %s) """,
-                    (nomgroupe, representant, telephone))
-        self.connection.commit()
-        print("Client ajoute avec sucess !")
+        try:
+            cusror.execute(""" 
+                            insert into Clients (nomgroupe , representant, telephone_client)
+                        values(%s, %s, %s) """,
+                        (nomgroupe, representant, telephone))
+            self.connection.commit()
+            print("Client ajoute avec sucess !")
+        except Exception as e:
+            print(f"VOus avez commit une erreur")
         cusror.close()
 
 
