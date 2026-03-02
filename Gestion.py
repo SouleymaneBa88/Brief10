@@ -90,7 +90,18 @@ class GestionDuService:
         for c in creneaux:
             print(f"ID: {c['id_creneaux']} | {c['heureDebut_creneaux']} → {c['heureFin']}")
 
-        id_creneaux = int(input("\nChoisir ID Créneau : "))
+        choix = int(input("CHoix LE NOMBRE DE CRENEAUX ENTRE 1 ET 3: "))
+        donnes_creneaux = []
+        if 1<= choix <= 3:
+            for i in range(choix):
+                id_creneaux = int(input(f"\nChoisir ID Créneau  {i+1} : "))
+                donnes_creneaux.append(
+                    (motif_resrver,Date,client,id_creneaux)
+                    )
+                # print(type(donnes_creneaux))
+                # print(donnes_creneaux)
+        else:
+            print("Incorrect")
 
         cursor.execute(""" 
                          SELECT * FROM reservation
@@ -101,18 +112,20 @@ class GestionDuService:
         exist = cursor.fetchone()
 
         if exist:
-            print("Reservation rejete!\n Cause: Ce creneaux a ete deja pris")
+            print(f"Reservation rejete!\n Cause:  Creneaux a ete deja pris")
             return
 
-        cursor.execute(""" 
+        cursor.executemany(""" 
                         insert into reservation(type_reservation,date_reservation,id_client,id_creneaux,statut) 
-                       values(%s,%s,%s,%s,'reserve')""",(motif_resrver, Date,client,id_creneaux))
+                    values(%s,%s,%s,%s,'reserve')""",(donnes_creneaux))
         self.connection.commit()
         print("Reservation reussi !")
+    
         cursor.close()
 
 
     def annuler_reservation(self):
+        """ Fonction pour annuler une reservation  """
         cursor = self.connection.cursor(dictionary=True)
 
         question = input("VOULEZ-VOUS ANNULER UNE RESERVATION (oui/non) : ").lower()
@@ -175,6 +188,7 @@ class GestionDuService:
         cursor.close()
 
     def supprime_reservation_annule(self):
+        """ pour supprimer une reservation annulee du table """
         cursor = self.connection.cursor(dictionary=True)
         cursor.execute(""" select * from reservation where statut = 'annule' """)
         resultat = cursor.fetchall()
@@ -205,6 +219,7 @@ class GestionDuService:
 
 
     def exporter_csv(self):
+        """ pour exporter la liste des creneaux occupe par un representant """
         cursor = self.connection.cursor(dictionary=True)
 
         cursor.execute("""
