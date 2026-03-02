@@ -21,6 +21,7 @@ class Menu():
             print("5 - Faire une Réservation")
             print("6 - Annuler une Réservation")
             print("7 - Exporter en CSV")
+            print("8 - Supprimer une reservation annulee")
             print("0 - Quitter")
             print("="*50)
 
@@ -49,6 +50,8 @@ class Menu():
 
                 case "7":
                     self.gerer.exporter_csv()
+                case "8":
+                        self.gerer.supprime_reservation_annule()
 
                 case "0":
                     print(" Au revoir !")

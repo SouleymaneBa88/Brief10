@@ -174,6 +174,35 @@ class GestionDuService:
 
         cursor.close()
 
+    def supprime_reservation_annule(self):
+        cursor = self.connection.cursor(dictionary=True)
+        cursor.execute(""" select * from reservation where statut = 'annule' """)
+        resultat = cursor.fetchall()
+
+        if not resultat:
+            print("Aucune reservation n'a ete annulee!")
+            return
+        
+
+        print("\n" + "="*90)
+        print(f"{'ID':^5} | {'Motif':^15} | {'Date':^15} | {'Client':^10} | {'Creneau':^10} | {'Statut':^10}")
+        print("="*90)
+
+        for row in resultat:
+            print(f"{row['id_reservation']:^5} | "
+                f"{row['type_reservation']:^15} | "
+                f"{str(row['date_reservation']):^15} | "
+                f"{row['id_client']:^10} | "
+                f"{row['id_creneaux']:^10} | "
+                f"{row['statut']:^10}")
+    
+        choix = int(input("ID du reservation a supprimer : "))
+
+        cursor.execute(""" delete from reservation where id_reservation =%s """,(choix,))
+        self.connection.commit()
+        print("Suppression avec succes !")
+        cursor.close()
+
 
     def exporter_csv(self):
         cursor = self.connection.cursor(dictionary=True)
