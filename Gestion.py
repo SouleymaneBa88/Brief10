@@ -1,6 +1,7 @@
 from Data_base import DataBase
 import csv
 from groupe import Groupes
+from datetime import datetime,date
 
 class GestionDuService:
     def __init__(self):
@@ -77,54 +78,113 @@ class GestionDuService:
     
 
     def reservation(self):
-        """ permet de faire une reservation """
+        """Permet de faire une réservation sécurisée"""
+
         cursor = self.connection.cursor(dictionary=True)
+
+        #
         self.listeClient.liste_client()
-        client= int(input("ID du client : "))
-        motif_resrver = input("MOTIF DE RESERVATION : ")
-        Date = input("DATE DU RESERVATION (ex: 2026-02-28)")
-        cursor.execute("SELECT id_creneaux, heureDebut_creneaux, heureFin FROM creneaux")
+
+        try:
+            client = int(input("ID du client : "))
+        except ValueError:
+            print("ID invalide.")
+            return
+
+        cursor.execute("SELECT id_client FROM Clients WHERE id_client = %s", (client,))
+        if not cursor.fetchone():
+            print("Client introuvable.")
+            return
+
+        
+        motif_reserver = input("Motif de réservation : ").strip()
+
+       
+        Date = input("Date de réservation (YYYY-MM-DD) : ").strip()
+
+        try:
+            date_reservation = datetime.strptime(Date, "%Y-%m-%d").date()
+        except ValueError:
+            print("Format invalide. Utilisez YYYY-MM-DD.")
+            return
+
+        if date_reservation < date.today():
+            print("Impossible de réserver pour une date passée.")
+            return
+
+        cursor.execute("""
+            SELECT id_creneaux, heureDebut_creneaux, heureFin 
+            FROM creneaux
+        """)
         creneaux = cursor.fetchall()
 
-        print("\n===== LISTE DES CRENEAUX =====")
+        print("\nListe des créneaux :")
         for c in creneaux:
             print(f"ID: {c['id_creneaux']} | {c['heureDebut_creneaux']} → {c['heureFin']}")
 
-        choix = int(input("CHoix LE NOMBRE DE CRENEAUX ENTRE 1 ET 3: "))
-        donnes_creneaux = []
-        if 1<= choix <= 3:
-            for i in range(choix):
-                id_creneaux = int(input(f"\nChoisir ID Créneau  {i+1} : "))
-                if id_creneaux not in donnes_creneaux:
-                    donnes_creneaux.append(
-                        (motif_resrver,Date,client,id_creneaux)
-                        )
-                else:
-                    print("Vous avez choisi deux fois le meme creneaux")
-        else:
-            print("Incorrect")
-
-        cursor.execute(""" 
-                         SELECT * FROM reservation
-                        WHERE id_creneaux = %s
-                        AND date_reservation = %s
-                        AND statut = 'reserve'""",(id_creneaux,Date))
-        exist = cursor.fetchone()
-
-        if exist:
-            print(f"Reservation rejete!\n Cause:  Creneaux a ete deja pris")
+        
+        try:
+            choix = int(input("Nombre de créneaux (1 à 3) : "))
+        except ValueError:
+            print("Choix invalide.")
             return
 
+        if not 1 <= choix <= 3:
+            print("Nombre incorrect.")
+            return
+
+        donnes_creneaux = []
+
+        for i in range(choix):
+            try:
+                id_creneaux = int(input(f"Choisir ID Créneau {i+1} : "))
+            except ValueError:
+                print("ID invalide.")
+                return
+
+            cursor.execute(
+                "SELECT id_creneaux FROM creneaux WHERE id_creneaux = %s",
+                (id_creneaux,)
+            )
+            if not cursor.fetchone():
+                print(f"Créneau {id_creneaux} inexistant.")
+                return
+
+            if id_creneaux in [d[3] for d in donnes_creneaux]:
+                print("erreur ! , Créneau choisi deux fois.")
+                return
+
+            cursor.execute("""
+                SELECT 1 FROM reservation
+                WHERE id_creneaux = %s
+                AND date_reservation = %s
+                AND statut = 'reserve'
+            """, (id_creneaux, Date))
+
+            if cursor.fetchone():
+                print(f"Créneau {id_creneaux} déjà réservé pour cette date.")
+                return
+
+            donnes_creneaux.append(
+                (motif_reserver, Date, client, id_creneaux)
+            )
+
         try:
-            cursor.executemany(""" 
-                            insert into reservation(type_reservation,date_reservation,id_client,id_creneaux,statut) 
-                        values(%s,%s,%s,%s,'reserve')""",(donnes_creneaux))
+            cursor.executemany("""
+                INSERT INTO reservation
+                (type_reservation, date_reservation, id_client, id_creneaux, statut)
+                VALUES (%s, %s, %s, %s, 'reserve')
+            """, donnes_creneaux)
+
             self.connection.commit()
-            print("Reservation reussi !")
+            print("Réservation réussie.")
+
         except Exception as e:
-            print(f"Oups il y'a une erreur {e} \n Verifier id choisi si tu ne l'as pas choisi deux fois")
-    
-        cursor.close()
+            self.connection.rollback()
+            print(f"Erreur lors de l'insertion : {e}")
+
+        finally:
+            cursor.close()
 
 
     def annuler_reservation(self):
